@@ -126,10 +126,10 @@ class CharacteristicCallbacks: public NimBLECharacteristicCallbacks {
         Serial.println(received_data);
         parcing_rgb(received_data);
         // pickOneLED(0, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
-        switch (RGB_Array[6]) // skills
+        switch (RGB_Array[5]) // skills
         {
           case PICK_ONE_COLOR:
-            switch(RGB_Array[5])  // position of text
+            switch(RGB_Array[4])  // position of text
             {
               case 1:
                 pickOneLED(0, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
