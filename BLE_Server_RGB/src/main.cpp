@@ -24,6 +24,16 @@ uint16_t interval = 1000;
 
 int count = 0;
 
+typedef enum _skills{
+  PICK_ONE_COLOR = 1,
+  COLOR_WIPE,
+  THEATER_CHASE,
+  RAINBOW,
+  THEATERCHASE_RAINBOW,
+  BLINK,
+  RESET
+}SKIILS;
+
 
 unsigned long pixelPrevious = 0;        // Previous Pixel Millis
 unsigned long patternPrevious = 0;      // Previous Pattern Millis
@@ -35,7 +45,7 @@ int           pixelCycle = 0;           // Pattern Pixel Cycle
 uint16_t      pixelCurrent = 0;         // Pattern Current Pixel Number
 uint16_t      pixelNumber = LED_COUNT;  // Total Number of Pixels
 
-int RGB_Array[5] = {0,};
+int RGB_Array[6] = {0,};
 
 // Declare our NeoPixel strip object:
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
@@ -115,26 +125,46 @@ class CharacteristicCallbacks: public NimBLECharacteristicCallbacks {
         String received_data = pCharacteristic->getValue().c_str();
         Serial.println(received_data);
         parcing_rgb(received_data);
-        pickOneLED(0, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
-        switch (RGB_Array[4])
+        // pickOneLED(0, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
+        switch (RGB_Array[6]) // skills
         {
-        case 1:
-          pickOneLED(0, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
+          case PICK_ONE_COLOR:
+            switch(RGB_Array[5])  // position of text
+            {
+              case 1:
+                pickOneLED(0, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
+                break;
+              case 2:
+                pickOneLED(1, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
+                break;
+              case 3:
+                pickOneLED(2, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
+                break;
+              case 4:
+                pickOneLED(3, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
+                break;
+              case 5:
+                pickOneLED(4, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
+                break;
+            }
+            break;
+       
+        case COLOR_WIPE:
           break;
-        case 2:
-          pickOneLED(1, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
+        case THEATER_CHASE:
           break;
-        case 3:
-          pickOneLED(2, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
+        case RAINBOW:
+          rainbow(5);
           break;
-        case 4:
-          pickOneLED(3, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
+        case THEATERCHASE_RAINBOW:
           break;
-        case 5:
-          pickOneLED(4, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
+        case BLINK:
           break;
+        case RESET:
+          resetNeopixel();
+          break;
+      
         default:
-
           break;
         }
 
@@ -278,6 +308,7 @@ void parcing_rgb(String RGB){
   int second_comma = RGB.indexOf(",", first_comma + 1);
   int third_comma = RGB.indexOf(",", second_comma + 1);
   int forth_comma = RGB.indexOf(",", third_comma + 1);
+  int fifth_comma = RGB.indexOf(",", forth_comma + 1);
   int RGB_length = RGB.length();
   
   
@@ -286,13 +317,15 @@ void parcing_rgb(String RGB){
   int green = RGB.substring(first_comma + 1, second_comma).toInt();
   int blue = RGB.substring(second_comma + 1, third_comma).toInt();
   int brightness = RGB.substring(third_comma + 1, forth_comma).toInt();
-  int text_flag = RGB.substring(forth_comma + 1 ,RGB_length).toInt();
+  int text_flag = RGB.substring(forth_comma + 1 ,fifth_comma).toInt();
+  int skill_flag = RGB.substring(fifth_comma + 1, RGB_length).toInt();
 
   RGB_Array[0] = red;
   RGB_Array[1] = green;
   RGB_Array[2] = blue;
   RGB_Array[3] = brightness;
   RGB_Array[4] = text_flag;
+  RGB_Array[5] = skill_flag;
 }
 
 
