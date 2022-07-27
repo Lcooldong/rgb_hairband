@@ -7,8 +7,8 @@
 #endif
 
 #define BTN 3
-#define LED_COUNT 60
-#define LED_PIN    2
+#define LED_COUNT 16
+#define LED_PIN    4
 
 #define SERVICE_UUID        "DEAD"
 #define CHARACTERISTIC_UUID "BEEF"
@@ -25,11 +25,9 @@ uint16_t interval = 1000;
 int count = 0;
 
 typedef enum _skills{
-  PICK_ONE_COLOR = 1,
-  COLOR_WIPE,
-  THEATER_CHASE,
+  All_Selected = 1,
+  PICK_ONE_COLOR,
   RAINBOW,
-  THEATERCHASE_RAINBOW,
   BLINK,
   RESET
 }SKIILS;
@@ -46,6 +44,7 @@ uint16_t      pixelCurrent = 0;         // Pattern Current Pixel Number
 uint16_t      pixelNumber = LED_COUNT;  // Total Number of Pixels
 
 int RGB_Array[6] = {0,};
+int RGB_TEXT[LED_COUNT][3] = {0,};
 
 // Declare our NeoPixel strip object:
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
@@ -120,17 +119,31 @@ class CharacteristicCallbacks: public NimBLECharacteristicCallbacks {
     };
 
     void onWrite(NimBLECharacteristic* pCharacteristic) {
-        Serial.print(pCharacteristic->getUUID().toString().c_str());
-        Serial.print(": onWrite(), value: ");
+        
+        // Serial.print(pCharacteristic->getUUID().toString().c_str());
+        // Serial.print(": onWrite(), value: ");
         String received_data = pCharacteristic->getValue().c_str();
         Serial.println(received_data);
         parcing_rgb(received_data);
         // pickOneLED(0, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
+
+
         switch (RGB_Array[5]) // skills
         {
+          case All_Selected:
+            for(int i= 0; i < LED_COUNT; i++)
+            {
+              pickOneLED(i, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
+            }
+            break;
+
           case PICK_ONE_COLOR:
             switch(RGB_Array[4])  // position of text
             {
+              for(int i=0; i<3; i++)
+              {
+                  RGB_TEXT[RGB_Array[4]][i] = RGB_Array[i];
+              }
               case 1:
                 pickOneLED(0, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]), RGB_Array[3], 20);
                 break;
@@ -148,25 +161,12 @@ class CharacteristicCallbacks: public NimBLECharacteristicCallbacks {
                 break;
             }
             break;
-       
-        case COLOR_WIPE:
-          break;
-        case THEATER_CHASE:
-          break;
-        case RAINBOW:
-          rainbow(5);
-          break;
-        case THEATERCHASE_RAINBOW:
-          break;
-        case BLINK:
-          break;
-        case RESET:
-          resetNeopixel();
-          break;
-      
-        default:
-          break;
+          case RESET:
+            resetNeopixel();
+            break;
+        
         }
+        vTaskDelay(1);
 
     };
     /** Called before notification or indication is sent,
@@ -239,7 +239,7 @@ void setup() {
   neopixel_init();
   Serial.println("Starting BLE work!");
 
-  BLEDevice::init("ESP32_BLE_Server");
+  BLEDevice::init("RGB_HAIR_BAND");
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new ServerCallbacks());
   BLEService *pService = pServer->createService(SERVICE_UUID);
@@ -278,28 +278,18 @@ void setup() {
 
 void loop() {
   /** Do your thing here, this just spams notifications to all connected clients */
-
-
-  if(digitalRead(BTN) == false){
-    delay(5);
-    if(digitalRead(BTN) == false){
-      NimBLEService* pSvc = pServer->getServiceByUUID("DEAD");
-      NimBLECharacteristic* pChr = pSvc->getCharacteristic("BEEF");
-      Serial.println(pChr->getValue().c_str());
-
-    //   pChr->setValue(count);
-    //   Serial.print("0x");
-    //   Serial.println(count, HEX);
-    //   count++;
-      while(digitalRead(BTN) == false){
-        ;;
-      }
-
-    }
+  switch (RGB_Array[5])
+  {
+    case RAINBOW:
+      Serial.println("rainbow");
+      strip.setBrightness(RGB_Array[3]);
+      rainbow(1);
+      break;
+    case BLINK:
+      Serial.println("blink");
+      blinkNeopixel(RGB_Array[3], 1, 1000);
+      break;
   }
-  delay(50);
-
-
 }
 
 
@@ -349,17 +339,30 @@ void pickOneLED(uint8_t ledNum, uint32_t color, uint8_t brightness, int wait){
     delay(wait);
 }
 
-void blinkNeopixel(uint32_t color, int times, int delays){
-  for(int i = 0; i < times; i++){
-    pickOneLED(0, color, 50, delays);
-    pickOneLED(0, strip.Color(0, 0, 0), 0, delays);
+void blinkNeopixel(uint8_t brightness, int times, int delays){
+  for (int i = 0; i < times; i++)
+  {
+    strip.setBrightness(brightness);
+    for(int i=0; i<LED_COUNT; i++){
+      strip.setPixelColor(i, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]));
+    }
+    strip.show();
+    delay(delays);
+    strip.setBrightness(0);
+    for(int i=0; i<LED_COUNT; i++){
+      strip.setPixelColor(i, strip.Color(RGB_Array[0], RGB_Array[1], RGB_Array[2]));
+    }
+    strip.show();
+    delay(delays);
   }
 }
 
 void resetNeopixel(void){
+  strip.setBrightness(0);
   for(int i=0; i < 256; i++){
     pickOneLED(i, strip.Color(0, 0, 0), 0, 0 );
   } 
+  strip.show();
 }
 
 
@@ -394,6 +397,7 @@ void theaterChase(uint32_t color, int wait) {
 
 // Rainbow cycle along whole strip. Pass delay time (in ms) between frames.
 void rainbow(uint8_t wait) {
+  
   if(pixelInterval != wait)
     pixelInterval = wait;                   
   for(uint16_t i=0; i < pixelNumber; i++) {
